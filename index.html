@@ -105,6 +105,39 @@
   .form-fav button { height:40px; padding:0 16px; border-radius:12px; background:var(--accent); color:#000; font-weight:600; }
   .aide { color:var(--muted); font-size:12px; margin:0; line-height:1.5; }
 
+  /* ---------- Mes séquences ---------- */
+  .fav .mini { display:flex; gap:3px; flex:none; }
+  .fav .mini .pas { display:flex; gap:1px; }
+  .fav .mini b { width:3px; height:10px; border-radius:1px; background:currentColor; opacity:.15; }
+  .fav.actif { background:var(--accent); color:#000; }
+
+  /* ---------- Extinction auto ---------- */
+  .segments { display:flex; gap:6px; }
+  .segments button { flex:1; height:34px; border-radius:10px; background:var(--surface2); font-size:13px; font-weight:600; color:var(--muted); }
+  .segments button.actif { background:var(--accent); color:#000; }
+
+  /* ---------- Éditeur ---------- */
+  .ed-nom { height:44px; border-radius:12px; border:1px solid var(--ligne); background:var(--bg); color:var(--txt);
+            font:inherit; font-size:16px; padding:0 14px; outline:none; user-select:text; width:100%; }
+  .ed-apercu { display:flex; align-items:center; justify-content:center; gap:18px; }
+  .ed-apercu .feu { width:38px; height:38px; }
+  .ed-apercu span { color:var(--muted); font-size:12px; min-width:70px; text-align:center; font-variant-numeric:tabular-nums; }
+  .ed-grille { display:grid; grid-template-columns:auto 1fr; gap:8px 10px; align-items:center; }
+  .ed-grille .etiquette { font-size:12px; font-weight:600; color:var(--muted); }
+  .ed-ligne { display:flex; gap:5px; overflow-x:auto; padding:3px 2px; scrollbar-width:none; }
+  .ed-ligne::-webkit-scrollbar { display:none; }
+  .case { flex:none; width:30px; height:30px; border-radius:8px; background:var(--surface2); border:2px solid transparent; }
+  .case.on { background:#fff; }
+  .case.courant { border-color:rgba(255,255,255,.55); }
+  .case.on.courant { border-color:var(--ok); }
+  .ed-outils { display:flex; align-items:center; gap:8px; }
+  .ed-outils button { height:36px; padding:0 14px; border-radius:10px; background:var(--surface2); font-size:13px; font-weight:600; }
+  .ed-outils .compte { flex:1; text-align:center; color:var(--muted); font-size:13px; font-variant-numeric:tabular-nums; }
+  .ed-actions { display:flex; gap:8px; }
+  .ed-actions .bouton { flex:1; }
+  .bouton.principal { background:var(--accent); color:#000; }
+  .panneau.haut { max-height:92vh; overflow-y:auto; }
+
   /* ---------- Panneau paramètres ---------- */
   .voile { position:fixed; inset:0; background:rgba(0,0,0,.55); opacity:0; pointer-events:none; transition:opacity .25s; }
   .voile.ouvert { opacity:1; pointer-events:auto; }
@@ -167,6 +200,14 @@
     </section>
 
     <section style="margin-top:28px">
+      <div class="tete">
+        <p class="section-titre">Mes séquences</p>
+        <button class="lien" id="btnEditSeq">Modifier</button>
+      </div>
+      <div class="favoris" id="sequences"></div>
+    </section>
+
+    <section style="margin-top:28px">
       <div class="reglages">
         <div class="reglage">
           <div class="ligne"><span>Vitesse</span><span id="vitVal">50</span></div>
@@ -179,6 +220,16 @@
         <div class="reglage" id="reglagePause" hidden>
           <div class="ligne"><span>Pause</span><span id="pauseVal">0,45 s</span></div>
           <input type="range" id="pause" min="0" max="100" value="30">
+        </div>
+        <div class="reglage">
+          <div class="ligne"><span>Extinction auto</span><span id="minVal">désactivée</span></div>
+          <div class="segments" id="segMin">
+            <button data-min="0">Non</button>
+            <button data-min="5">5 min</button>
+            <button data-min="10">10 min</button>
+            <button data-min="30">30 min</button>
+            <button data-min="60">1 h</button>
+          </div>
         </div>
       </div>
     </section>
@@ -197,6 +248,33 @@
   <p class="aide">À la première connexion, le téléphone demande le <b>code d'appairage</b> de la carte (6 chiffres, défini dans le programme de l'ESP32). Il s'en souvient ensuite. L'appli se reconnecte toute seule si la liaison est coupée.</p>
   <p class="section-titre" style="margin:4px 0 -6px 2px">Messages</p>
   <pre id="log"></pre>
+</div>
+
+<div class="panneau haut" id="editeur" role="dialog" aria-label="Éditeur de séquence">
+  <div class="poignee"></div>
+  <h2 id="edTitre">Nouvelle séquence</h2>
+  <input class="ed-nom" id="edNom" maxlength="20" placeholder="Nom de la séquence" autocomplete="off">
+  <div class="ed-apercu">
+    <div class="feu" id="edLampeG"></div>
+    <span id="edPas">pas 1 / 8</span>
+    <div class="feu" id="edLampeD"></div>
+  </div>
+  <div class="ed-grille">
+    <span class="etiquette">Gauche</span><div class="ed-ligne" id="edLigneG"></div>
+    <span class="etiquette">Droite</span><div class="ed-ligne" id="edLigneD"></div>
+  </div>
+  <div class="ed-outils">
+    <button id="edMoins">− pas</button>
+    <span class="compte" id="edCompte">8 pas</span>
+    <button id="edPlus">+ pas</button>
+    <button id="edVider">Effacer</button>
+  </div>
+  <p class="aide">Chaque colonne est un pas. Touche une case pour allumer le phare gauche ou droit à ce moment-là. Deux cases allumées à la suite donnent deux flashs. Le curseur <b>Vitesse</b> règle la durée d'un pas (32 pas maximum).</p>
+  <div class="ed-actions">
+    <button class="bouton" id="edAnnuler">Annuler</button>
+    <button class="bouton principal" id="edOk">Enregistrer et jouer</button>
+  </div>
+  <button class="bouton danger" id="edSupprimer">Supprimer cette séquence</button>
 </div>
 
 <script>
@@ -248,13 +326,29 @@ MODES.forEach(m => {
 });
 
 const texteSecondes = p => (p * 15 / 1000).toFixed(2).replace('.', ',') + ' s';
-const nomDuMode = n => (MODES.find(m => m.n === n) || {}).nom || '';
+const MODE_PERSO = 18;
+const nomDuMode = n => {
+  if (n === MODE_PERSO) { const sq = sequences.find(q => q.pas === seqCarte); return sq ? sq.nom : 'Séquence perso'; }
+  return (MODES.find(m => m.n === n) || {}).nom || '';
+};
 
 function majModes() {
   document.querySelectorAll('.mode').forEach(b => b.classList.toggle('actif', +b.dataset.m === mode));
   $('btnPower').classList.toggle('on', mode !== 0);
-  $('nomMode').textContent = mode === 0 ? 'Éteint' : nomDuMode(mode);
   $('reglagePause').hidden = !MODES_PAUSE.includes(mode);
+  if (typeof afficherSequences === 'function') afficherSequences();
+  majNomMode();
+}
+
+// Nom du mode + compte à rebours de l'extinction automatique
+let texteNomMode = '';
+function majNomMode() {
+  let t = mode === 0 ? 'Éteint' : nomDuMode(mode);
+  if (mode !== 0 && finMinuterie) {
+    const r = Math.max(0, Math.round((finMinuterie - Date.now()) / 1000));
+    t += ' · arrêt dans ' + Math.floor(r / 60) + ':' + String(r % 60).padStart(2, '0');
+  }
+  if (t !== texteNomMode) { texteNomMode = t; $('nomMode').textContent = t; }
 }
 function choisirMode(i) {
   mode = i;
@@ -315,6 +409,16 @@ function acceleration(t, P, Q) {
   return (phase - Math.floor(phase)) < 0.3 ? 1 : 0;
 }
 
+// Séquence perso : chaque pas dure une demi-période, lumière allumée 60 % du pas
+function perso(t, P, pas) {
+  const n = pas.length;
+  if (!n) return [0, 0];
+  const duree = Math.max(20, Math.floor(P / 2)), pos = t % (n * duree), i = Math.floor(pos / duree);
+  if ((pos % duree) >= duree * 0.6) return [0, 0];
+  const c = pas[i];
+  return [c === 'G' || c === 'X' ? 1 : 0, c === 'D' || c === 'X' ? 1 : 0];
+}
+
 function calculer(t) {
   const P = periode(), Q = pause * 15, frac = (t % P) / P, cyc = t % (2 * P);
   const premiere = cyc < P, fracDemi = (cyc % P) / P, strobo = frac < 0.3 ? 1 : 0;
@@ -342,6 +446,7 @@ function calculer(t) {
       break;
     }
     case 17: g = d = acceleration(t, P, Q); break;
+    case MODE_PERSO: [g, d] = perso(t, P, seqCarte); break;
   }
   return [g * lum / 100, d * lum / 100];
 }
@@ -355,6 +460,8 @@ function animer(t) {
   const [g, d] = calculer(t);
   allumer($('lampeG'), g, 'var(--g)');
   allumer($('lampeD'), d, 'var(--d)');
+  if (edOuvert) animerEditeur(t);
+  majNomMode();
   requestAnimationFrame(animer);
 }
 requestAnimationFrame(animer);
@@ -365,7 +472,7 @@ function ouvrirPanneau(ouvert) {
   $('voile').classList.toggle('ouvert', ouvert);
 }
 $('btnParam').onclick = () => ouvrirPanneau(true);
-$('voile').onclick = () => ouvrirPanneau(false);
+$('voile').onclick = () => { ouvrirPanneau(false); if (edOuvert) fermerEditeur(); };
 
 // ---------- Mémoire locale (favoris, dernier appareil) ----------
 function lire(cle, defaut) {
@@ -382,6 +489,7 @@ let editionFav = false;
 function appliquerFavori(f) {
   mode = f.mode; vitesse = f.vitesse; lum = f.lum; pause = f.pause;
   if (mode !== 0) dernierMode = mode;
+  if (f.seq) { seqCarte = f.seq; envoyerSequence(f.seq); }
   majCurseurs(); majModes();
   envoyer('V:' + vitesse); envoyer('L:' + lum); envoyer('P:' + pause); envoyer('M:' + mode);
   log('Favori « ' + f.nom + ' » appliqué');
@@ -424,7 +532,10 @@ function ouvrirFormFavori() {
 }
 function enregistrerFavori() {
   const nom = $('nomFav').value.trim() || nomDuMode(mode) || 'Favori';
-  favoris.push({ nom, mode: mode === 0 ? dernierMode : mode, vitesse, lum, pause });
+  const m = mode === 0 ? dernierMode : mode;
+  const f = { nom, mode: m, vitesse, lum, pause };
+  if (m === MODE_PERSO) f.seq = seqCarte;
+  favoris.push(f);
   ecrire('favoris', favoris);
   $('formFav').hidden = true;
   afficherFavoris();
@@ -435,6 +546,158 @@ $('nomFav').onkeydown = e => {
   if (e.key === 'Escape') $('formFav').hidden = true;
 };
 $('btnEditFav').onclick = () => { editionFav = !editionFav; $('formFav').hidden = true; afficherFavoris(); };
+
+// ---------- Mes séquences ----------
+let sequences = lire('sequences', [
+  { nom:'Ping-pong', pas:'G_D_G_D_XX__' },
+  { nom:'Police', pas:'GGG_DDD_GGG_DDD_X_X_X___' },
+]);
+let seqCarte = 'GD__GD__';      // séquence actuellement dans la carte
+let editionSeq = false;
+
+const PAIRES = { G:[1,0], D:[0,1], X:[1,1], _:[0,0] };
+function miniMotif(pas) {
+  return [...pas.slice(0, 8)].map(c => {
+    const [g, d] = PAIRES[c] || [0, 0];
+    return `<span class="pas"><b style="opacity:${g ? 1 : .15}"></b><b style="opacity:${d ? 1 : .15}"></b></span>`;
+  }).join('');
+}
+
+// Envoie la séquence à la carte en morceaux de 16 pas (taille maximale d'un message Bluetooth)
+function envoyerSequence(pas) {
+  envoyer('S:' + pas.slice(0, 16));
+  if (pas.length > 16) envoyer('S+' + pas.slice(16, 32));
+}
+
+function jouerSequence(pas) {
+  seqCarte = pas;
+  envoyerSequence(pas);
+  choisirMode(MODE_PERSO);
+}
+
+function afficherSequences() {
+  const zone = $('sequences');
+  zone.innerHTML = '';
+  zone.classList.toggle('edition', editionSeq);
+  sequences.forEach((q, i) => {
+    const b = document.createElement('button');
+    b.className = 'fav' + (!editionSeq && mode === MODE_PERSO && q.pas === seqCarte ? ' actif' : '');
+    const mini = document.createElement('span');
+    mini.className = 'mini'; mini.innerHTML = miniMotif(q.pas);
+    const nom = document.createElement('span');
+    nom.textContent = q.nom;
+    b.append(mini, nom);
+    b.onclick = () => editionSeq ? ouvrirEditeur(i) : jouerSequence(q.pas);
+    zone.appendChild(b);
+  });
+  if (!editionSeq) {
+    const plus = document.createElement('button');
+    plus.className = 'fav ajout';
+    plus.textContent = '+ Créer';
+    plus.onclick = () => ouvrirEditeur(null);
+    zone.appendChild(plus);
+  }
+  $('btnEditSeq').hidden = !sequences.length;
+  $('btnEditSeq').textContent = editionSeq ? 'Terminé' : 'Modifier';
+}
+$('btnEditSeq').onclick = () => { editionSeq = !editionSeq; afficherSequences(); };
+
+// ---------- Éditeur ----------
+let edOuvert = false, edIndex = null, edPas = [];
+
+function ouvrirEditeur(i) {
+  edIndex = i;
+  const q = i === null ? { nom:'', pas:'G_D_G_D_' } : sequences[i];
+  edPas = [...q.pas];
+  $('edTitre').textContent = i === null ? 'Nouvelle séquence' : 'Modifier la séquence';
+  $('edNom').value = q.nom;
+  $('edSupprimer').hidden = i === null;
+  dessinerGrille();
+  edOuvert = true;
+  $('editeur').classList.add('ouvert');
+  $('voile').classList.add('ouvert');
+}
+function fermerEditeur() {
+  edOuvert = false;
+  $('editeur').classList.remove('ouvert');
+  $('voile').classList.remove('ouvert');
+}
+
+function dessinerGrille() {
+  ['G', 'D'].forEach(cote => {
+    const ligne = $(cote === 'G' ? 'edLigneG' : 'edLigneD');
+    ligne.innerHTML = '';
+    edPas.forEach((c, i) => {
+      const cell = document.createElement('button');
+      cell.className = 'case' + (PAIRES[c][cote === 'G' ? 0 : 1] ? ' on' : '');
+      cell.setAttribute('aria-label', (cote === 'G' ? 'Gauche' : 'Droite') + ', pas ' + (i + 1));
+      cell.onclick = () => basculerCase(i, cote);
+      ligne.appendChild(cell);
+    });
+  });
+  $('edCompte').textContent = edPas.length + ' pas';
+}
+function basculerCase(i, cote) {
+  let [g, d] = PAIRES[edPas[i]];
+  if (cote === 'G') g = 1 - g; else d = 1 - d;
+  edPas[i] = g && d ? 'X' : g ? 'G' : d ? 'D' : '_';
+  dessinerGrille();
+}
+// Les deux lignes défilent ensemble sur les longues séquences
+$('edLigneG').onscroll = () => { $('edLigneD').scrollLeft = $('edLigneG').scrollLeft; };
+$('edLigneD').onscroll = () => { $('edLigneG').scrollLeft = $('edLigneD').scrollLeft; };
+
+$('edPlus').onclick = () => { if (edPas.length < 32) { edPas.push('_'); dessinerGrille(); $('edLigneG').scrollLeft = 9999; } };
+$('edMoins').onclick = () => { if (edPas.length > 1) { edPas.pop(); dessinerGrille(); } };
+$('edVider').onclick = () => { edPas = edPas.map(() => '_'); dessinerGrille(); };
+$('edAnnuler').onclick = fermerEditeur;
+$('edSupprimer').onclick = () => {
+  sequences.splice(edIndex, 1);
+  ecrire('sequences', sequences);
+  if (!sequences.length) editionSeq = false;
+  fermerEditeur();
+  afficherSequences();
+};
+$('edOk').onclick = () => {
+  const pas = edPas.join('');
+  const nom = $('edNom').value.trim() || 'Séquence ' + (sequences.length + 1);
+  if (edIndex === null) sequences.push({ nom, pas }); else sequences[edIndex] = { nom, pas };
+  ecrire('sequences', sequences);
+  editionSeq = false;
+  fermerEditeur();
+  jouerSequence(pas);
+  afficherSequences();
+};
+
+let edPasAffiche = -1;
+function animerEditeur(t) {
+  const [g, d] = perso(t, periode(), edPas.join(''));
+  allumer($('edLampeG'), g * lum / 100, 'var(--g)');
+  allumer($('edLampeD'), d * lum / 100, 'var(--d)');
+  const duree = Math.max(20, Math.floor(periode() / 2));
+  const i = Math.floor((t % (edPas.length * duree)) / duree);
+  if (i !== edPasAffiche) {
+    edPasAffiche = i;
+    $('edPas').textContent = 'pas ' + (i + 1) + ' / ' + edPas.length;
+    document.querySelectorAll('#edLigneG .case, #edLigneD .case').forEach((c, k) => c.classList.toggle('courant', k % edPas.length === i));
+  }
+}
+
+// ---------- Extinction automatique ----------
+let minuterie = 0, finMinuterie = 0;
+function majMinuterie() {
+  document.querySelectorAll('#segMin button').forEach(b => b.classList.toggle('actif', +b.dataset.min === minuterie));
+  $('minVal').textContent = minuterie ? 'après ' + (minuterie >= 60 ? minuterie / 60 + ' h' : minuterie + ' min') + ' sans action' : 'désactivée';
+}
+// Comme sur la carte : toute action relance le compte à rebours
+function relancerMinuterie() {
+  finMinuterie = minuterie && mode !== 0 ? Date.now() + minuterie * 60000 : 0;
+}
+document.querySelectorAll('#segMin button').forEach(b => b.onclick = () => {
+  minuterie = +b.dataset.min;
+  majMinuterie();
+  envoyer('T:' + minuterie);
+});
 
 // ---------- Bluetooth ----------
 function log(t) {
@@ -472,6 +735,7 @@ async function ecrireCommande(txt) {
 // les changements de mode passent toujours.
 async function envoyer(txt, remplacable = false) {
   if (!rxChar) return;
+  relancerMinuterie();
   if (remplacable) { const cle = txt.slice(0, 2); file = file.filter(c => !c.startsWith(cle)); }
   file.push(txt);
   if (occupe) return;
@@ -493,10 +757,19 @@ function lireEtat(msg) {
   majModes();
 }
 
+let seqRecue = '';
 function recevoir(e) {
   const msg = new TextDecoder().decode(e.target.value);
   log('ESP32 : ' + msg);
   lireEtat(msg);
+  if (msg.startsWith('SEQ:')) { seqRecue = msg.slice(4); seqCarte = seqRecue; afficherSequences(); majNomMode(); }
+  if (msg.startsWith('SEQ+')) { seqRecue += msg.slice(4); seqCarte = seqRecue; afficherSequences(); majNomMode(); }
+  const m = msg.match(/^MIN (\d+) (\d+)/);
+  if (m) {
+    minuterie = +m[1];
+    finMinuterie = +m[2] > 0 ? Date.now() + +m[2] * 1000 : 0;
+    majMinuterie();
+  }
 }
 
 // Ouvre la liaison avec la carte (première connexion ou reconnexion)
@@ -613,6 +886,8 @@ setEtat('deconnecte');
 majCurseurs();
 majModes();
 afficherFavoris();
+afficherSequences();
+majMinuterie();
 reconnexionAuDemarrage();
 
 // Mode application : fonctionne même sans Internet une fois installée
