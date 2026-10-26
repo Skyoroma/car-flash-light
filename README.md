@@ -1,6 +1,32 @@
-# Car Flash Light
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/logo-sombre.svg">
+    <img alt="Car Flash Light" src="docs/logo-clair.svg" width="440">
+  </picture>
+</p>
 
-**Fais flasher les phares de ta voiture depuis ton téléphone, en Bluetooth.**
+<p align="center">
+  <a href="https://github.com/skyoroma/car-flash-light/actions/workflows/firmware.yml"><img alt="build" src="https://github.com/skyoroma/car-flash-light/actions/workflows/firmware.yml/badge.svg"></a>
+  <img alt="ESP32-S3" src="https://img.shields.io/badge/ESP32--S3-Espressif-E7352C?logo=espressif&logoColor=white">
+  <img alt="Arduino" src="https://img.shields.io/badge/Arduino-IDE-00878F?logo=arduino&logoColor=white">
+  <img alt="Bluetooth LE" src="https://img.shields.io/badge/Bluetooth-LE-0082FC?logo=bluetooth&logoColor=white">
+  <img alt="Appli web installable" src="https://img.shields.io/badge/appli-PWA-5A0FC8?logo=pwa&logoColor=white">
+  <br>
+  <img alt="17 modes" src="https://img.shields.io/badge/modes-17-ff3b30">
+  <img alt="12 V" src="https://img.shields.io/badge/alimentation-12%20V-f5a623">
+  <a href="https://github.com/skyoroma/car-flash-light/stargazers"><img alt="stars" src="https://img.shields.io/github/stars/skyoroma/car-flash-light?logo=github&label=stars"></a>
+  <img alt="dernière mise à jour" src="https://img.shields.io/github/last-commit/skyoroma/car-flash-light?logo=github&label=mis%20%C3%A0%20jour">
+</p>
+
+<p align="center">
+  <b>Fais flasher les phares de ta voiture depuis ton téléphone, en Bluetooth.</b>
+</p>
+
+<p align="center">
+  <a href="https://skyoroma.github.io/car-flash-light/"><img alt="Ouvrir l'appli" src="https://img.shields.io/badge/%E2%96%B6%20Ouvrir%20l%27appli-30d158?style=for-the-badge"></a>
+</p>
+
+---
 
 Un petit boîtier à base d'ESP32-S3 se branche sur le 12 V de la voiture et pilote deux lumières (gauche et droite). Une application web, installable sur le téléphone comme une vraie appli, permet de choisir parmi 17 effets : stroboscope, alterné gauche/droite, doubles et triples flashs, fondu, gyrophare, respiration, rafales avec pause…
 
@@ -250,7 +276,11 @@ Le circuit tire son énergie de la batterie : ajoute un fusible adapté et coupe
 ├── firmware/
 │   └── flash_esp32/
 │       └── flash_esp32.ino  Programme de l'ESP32-S3
+├── .github/workflows/
+│   └── firmware.yml         Compilation automatique (badge « build »)
 └── docs/
+    ├── logo-clair.svg       Logo (thème clair)
+    ├── logo-sombre.svg      Logo (thème sombre)
     ├── photo-montage.jpg
     └── schema-cablage.svg
 ```

@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 260" width="640" height="260">
+  <defs>
+    <radialGradient id="gr" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#ff3b30" stop-opacity=".55"/><stop offset="1" stop-color="#ff3b30" stop-opacity="0"/></radialGradient>
+    <radialGradient id="gb" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#2f7bff" stop-opacity=".55"/><stop offset="1" stop-color="#2f7bff" stop-opacity="0"/></radialGradient>
+  </defs>
+  <!-- halos -->
+  <circle cx="262" cy="92" r="78" fill="url(#gr)"/>
+  <circle cx="378" cy="92" r="78" fill="url(#gb)"/>
+  <!-- rayons gauche -->
+  <g stroke="#ff3b30" stroke-width="6" stroke-linecap="round">
+    <line x1="196" y1="92" x2="176" y2="92"/><line x1="204" y1="58" x2="186" y2="48"/><line x1="204" y1="126" x2="186" y2="136"/>
+  </g>
+  <!-- rayons droite -->
+  <g stroke="#2f7bff" stroke-width="6" stroke-linecap="round">
+    <line x1="444" y1="92" x2="464" y2="92"/><line x1="436" y1="58" x2="454" y2="48"/><line x1="436" y1="126" x2="454" y2="136"/>
+  </g>
+  <!-- feux -->
+  <circle cx="262" cy="92" r="44" fill="#ff3b30"/>
+  <circle cx="262" cy="92" r="19" fill="#fff" fill-opacity=".92"/>
+  <circle cx="378" cy="92" r="44" fill="#2f7bff"/>
+  <circle cx="378" cy="92" r="19" fill="#fff" fill-opacity=".92"/>
+  <!-- texte -->
+  <text x="320" y="210" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="46" font-weight="800" letter-spacing="-1" fill="#1f2328">Car Flash <tspan fill="#ff3b30">Li</tspan><tspan fill="#2f7bff">ght</tspan></text>
+  <text x="320" y="244" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="500" letter-spacing="3" fill="#59636e">ESP32-S3 · BLUETOOTH · 12 V</text>
+</svg>
