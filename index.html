@@ -83,6 +83,28 @@
 
   .desactive { opacity:.35; pointer-events:none; transition:opacity .2s; }
 
+  /* ---------- Favoris ---------- */
+  .tete { display:flex; justify-content:space-between; align-items:baseline; }
+  .lien { font-size:12px; font-weight:600; color:var(--muted); padding:4px 2px; }
+  .favoris { display:flex; flex-wrap:wrap; gap:8px; }
+  .fav { display:flex; align-items:center; gap:8px; height:38px; padding:0 14px; border-radius:999px;
+         background:var(--surface); font-size:14px; font-weight:500; max-width:100%; }
+  .fav span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .fav .x { display:none; width:18px; height:18px; border-radius:50%; background:var(--surface2); color:var(--bad);
+            font-size:13px; line-height:18px; text-align:center; flex:none; }
+  .edition .fav .x { display:block; }
+  .edition .fav:not(.ajout) { animation:tremble .3s ease-in-out infinite alternate; }
+  @keyframes tremble { from { transform:rotate(-1deg); } to { transform:rotate(1deg); } }
+  .fav.ajout { background:none; color:var(--muted); border:1px dashed rgba(255,255,255,.2); }
+  .fav:active { transform:scale(.96); }
+  .form-fav { display:flex; gap:8px; margin-top:10px; }
+  .form-fav[hidden] { display:none; }
+  .form-fav input { flex:1; min-width:0; height:40px; border-radius:12px; border:1px solid var(--ligne); background:var(--surface);
+                    color:var(--txt); font:inherit; padding:0 12px; outline:none; user-select:text; }
+  .form-fav input:focus { border-color:rgba(255,255,255,.3); }
+  .form-fav button { height:40px; padding:0 16px; border-radius:12px; background:var(--accent); color:#000; font-weight:600; }
+  .aide { color:var(--muted); font-size:12px; margin:0; line-height:1.5; }
+
   /* ---------- Panneau paramètres ---------- */
   .voile { position:fixed; inset:0; background:rgba(0,0,0,.55); opacity:0; pointer-events:none; transition:opacity .25s; }
   .voile.ouvert { opacity:1; pointer-events:auto; }
@@ -128,6 +150,18 @@
     <div class="nomMode" id="nomMode"></div>
 
     <section style="margin-top:28px">
+      <div class="tete">
+        <p class="section-titre">Favoris</p>
+        <button class="lien" id="btnEditFav" hidden>Modifier</button>
+      </div>
+      <div class="favoris" id="favoris"></div>
+      <div class="form-fav" id="formFav" hidden>
+        <input id="nomFav" maxlength="20" placeholder="Nom du favori" autocomplete="off" enterkeyhint="done">
+        <button id="okFav">Enregistrer</button>
+      </div>
+    </section>
+
+    <section style="margin-top:28px">
       <p class="section-titre">Modes</p>
       <div class="modes" id="modes"></div>
     </section>
@@ -160,6 +194,7 @@
     <div class="info"><span>État</span><span id="infoEtat">Déconnecté</span></div>
   </div>
   <button class="bouton" id="btnCo2">Se connecter</button>
+  <p class="aide">À la première connexion, le téléphone demande le <b>code d'appairage</b> de la carte (6 chiffres, défini dans le programme de l'ESP32). Il s'en souvient ensuite. L'appli se reconnecte toute seule si la liaison est coupée.</p>
   <p class="section-titre" style="margin:4px 0 -6px 2px">Messages</p>
   <pre id="log"></pre>
 </div>
@@ -185,8 +220,11 @@ const MODES = [
   { n:12, nom:'3 + 2',           motif:'xxxpxxp' },
   { n:13, nom:'2 + 2',           motif:'xxpxxp' },
   { n:14, nom:'3 + 1',           motif:'xxxpxp' },
+  { n:15, nom:'Respiration',     motif:'phxhp' },
+  { n:16, nom:'Gyrophare',       motif:'ggggdddd' },
+  { n:17, nom:'Accélération',    motif:'xppxpxx' },
 ];
-const MODES_PAUSE = [9, 10, 11, 12, 13, 14];
+const MODES_PAUSE = [9, 10, 11, 12, 13, 14, 17];
 
 const $ = id => document.getElementById(id);
 let mode = 0, dernierMode = 2, vitesse = 50, lum = 100, pause = 30;
@@ -198,7 +236,7 @@ MODES.forEach(m => {
   b.className = 'mode';
   b.dataset.m = m.n;
   // Niveau [gauche, droite] de chaque étape du motif
-  const NIVEAUX = { g:[1,0], d:[0,1], x:[1,1], p:[0,0], _:[0,0], G:[.6,.3], D:[.3,.6] };
+  const NIVEAUX = { g:[1,0], d:[0,1], x:[1,1], p:[0,0], _:[0,0], G:[.6,.3], D:[.3,.6], h:[.45,.45] };
   const barres = [...m.motif].map(c => {
     const [ng, nd] = NIVEAUX[c];
     const barre = n => `<b style="opacity:${n ? Math.max(n, .15) : .15}"></b>`;
@@ -267,6 +305,16 @@ function sequence(t, P, Q, groupes) {
   return 0;
 }
 
+// Strobo qui accélère : de 6 fois plus lent jusqu'à la vitesse réglée en 4 s, puis pause
+const DUREE_ACCEL = 4000;
+function acceleration(t, P, Q) {
+  const pos = t % (DUREE_ACCEL + Q);
+  if (pos >= DUREE_ACCEL) return 0;
+  const f1 = 1 / P, f0 = f1 / 6;
+  const phase = f0 * pos + (f1 - f0) * pos * pos / (2 * DUREE_ACCEL);
+  return (phase - Math.floor(phase)) < 0.3 ? 1 : 0;
+}
+
 function calculer(t) {
   const P = periode(), Q = pause * 15, frac = (t % P) / P, cyc = t % (2 * P);
   const premiere = cyc < P, fracDemi = (cyc % P) / P, strobo = frac < 0.3 ? 1 : 0;
@@ -286,6 +334,14 @@ function calculer(t) {
     case 12: g = d = sequence(t, P, Q, [3, 2]); break;
     case 13: g = d = sequence(t, P, Q, [2, 2]); break;
     case 14: g = d = sequence(t, P, Q, [3, 1]); break;
+    case 15: g = d = (1 - Math.cos(2 * Math.PI * (t % (4 * P)) / (4 * P))) / 2; break;
+    case 16: {
+      const H = Math.max(60, Math.floor(P * 6 / 10)), c = t % (2 * H);
+      const f = flashs((c % H) / H, 4);
+      if (c < H) g = f; else d = f;
+      break;
+    }
+    case 17: g = d = acceleration(t, P, Q); break;
   }
   return [g * lum / 100, d * lum / 100];
 }
@@ -311,6 +367,75 @@ function ouvrirPanneau(ouvert) {
 $('btnParam').onclick = () => ouvrirPanneau(true);
 $('voile').onclick = () => ouvrirPanneau(false);
 
+// ---------- Mémoire locale (favoris, dernier appareil) ----------
+function lire(cle, defaut) {
+  try { const v = localStorage.getItem(cle); return v === null ? defaut : JSON.parse(v); } catch (e) { return defaut; }
+}
+function ecrire(cle, valeur) {
+  try { localStorage.setItem(cle, JSON.stringify(valeur)); } catch (e) {}
+}
+
+// ---------- Favoris ----------
+let favoris = lire('favoris', []);
+let editionFav = false;
+
+function appliquerFavori(f) {
+  mode = f.mode; vitesse = f.vitesse; lum = f.lum; pause = f.pause;
+  if (mode !== 0) dernierMode = mode;
+  majCurseurs(); majModes();
+  envoyer('V:' + vitesse); envoyer('L:' + lum); envoyer('P:' + pause); envoyer('M:' + mode);
+  log('Favori « ' + f.nom + ' » appliqué');
+}
+
+function afficherFavoris() {
+  const zone = $('favoris');
+  zone.innerHTML = '';
+  zone.classList.toggle('edition', editionFav);
+  favoris.forEach((f, i) => {
+    const b = document.createElement('button');
+    b.className = 'fav';
+    const nom = document.createElement('span');
+    nom.textContent = f.nom;
+    const x = document.createElement('i');
+    x.className = 'x'; x.textContent = '×';
+    b.append(nom, x);
+    b.onclick = () => {
+      if (editionFav) { favoris.splice(i, 1); ecrire('favoris', favoris); if (!favoris.length) editionFav = false; afficherFavoris(); }
+      else appliquerFavori(f);
+    };
+    zone.appendChild(b);
+  });
+  if (!editionFav && favoris.length < 12) {
+    const plus = document.createElement('button');
+    plus.className = 'fav ajout';
+    plus.textContent = favoris.length ? '+' : '+ Enregistrer le réglage actuel';
+    plus.onclick = ouvrirFormFavori;
+    zone.appendChild(plus);
+  }
+  $('btnEditFav').hidden = !favoris.length;
+  $('btnEditFav').textContent = editionFav ? 'Terminé' : 'Modifier';
+}
+
+function ouvrirFormFavori() {
+  $('formFav').hidden = false;
+  $('nomFav').value = mode === 0 ? '' : nomDuMode(mode);
+  $('nomFav').focus();
+  $('nomFav').select();
+}
+function enregistrerFavori() {
+  const nom = $('nomFav').value.trim() || nomDuMode(mode) || 'Favori';
+  favoris.push({ nom, mode: mode === 0 ? dernierMode : mode, vitesse, lum, pause });
+  ecrire('favoris', favoris);
+  $('formFav').hidden = true;
+  afficherFavoris();
+}
+$('okFav').onclick = enregistrerFavori;
+$('nomFav').onkeydown = e => {
+  if (e.key === 'Enter') enregistrerFavori();
+  if (e.key === 'Escape') $('formFav').hidden = true;
+};
+$('btnEditFav').onclick = () => { editionFav = !editionFav; $('formFav').hidden = true; afficherFavoris(); };
+
 // ---------- Bluetooth ----------
 function log(t) {
   const h = new Date().toLocaleTimeString('fr-FR');
@@ -318,14 +443,29 @@ function log(t) {
 }
 const estConnecte = () => !!(device && device.gatt.connected && rxChar);
 
-function setConnecte(ok) {
+let etat = 'deconnecte';           // deconnecte | connexion | reconnexion | connecte
+let deconnexionVoulue = false;
+let minuterieReco = null;
+
+function setEtat(e) {
+  etat = e;
+  const ok = e === 'connecte';
+  const textes = { deconnecte:'Connecter', connexion:'Connexion…', reconnexion:'Reconnexion…', connecte:'Connecté' };
   $('btnCo').classList.toggle('on', ok);
-  $('etatTxt').textContent = ok ? 'Connecté' : 'Connecter';
+  $('etatTxt').textContent = textes[e];
   $('infoNom').textContent = device ? (device.name || 'Sans nom') : '—';
-  $('infoEtat').textContent = ok ? 'Connecté' : 'Déconnecté';
-  $('btnCo2').textContent = ok ? 'Se déconnecter' : 'Se connecter';
-  $('btnCo2').classList.toggle('danger', ok);
+  $('infoEtat').textContent = { deconnecte:'Déconnecté', connexion:'Connexion…', reconnexion:'Reconnexion automatique…', connecte:'Connecté' }[e];
+  $('btnCo2').textContent = e === 'deconnecte' ? 'Se connecter' : (ok ? 'Se déconnecter' : 'Annuler');
+  $('btnCo2').classList.toggle('danger', e !== 'deconnecte');
   $('commandes').classList.toggle('desactive', !ok);
+}
+
+// Envoi d'une commande. On demande un accusé de réception : c'est ce qui déclenche
+// la demande du code d'appairage par le téléphone à la première connexion.
+async function ecrireCommande(txt) {
+  const data = new TextEncoder().encode(txt);
+  if (rxChar.writeValueWithResponse) await rxChar.writeValueWithResponse(data);
+  else await rxChar.writeValue(data);
 }
 
 // File d'envoi : les curseurs remplacent leur commande en attente,
@@ -336,9 +476,9 @@ async function envoyer(txt, remplacable = false) {
   file.push(txt);
   if (occupe) return;
   occupe = true;
-  while (file.length) {
+  while (file.length && rxChar) {
     const c = file.shift();
-    try { await rxChar.writeValue(new TextEncoder().encode(c)); }
+    try { await ecrireCommande(c); }
     catch (e) { log('Erreur : ' + e.message); }
   }
   occupe = false;
@@ -353,40 +493,115 @@ function lireEtat(msg) {
   majModes();
 }
 
+function recevoir(e) {
+  const msg = new TextDecoder().decode(e.target.value);
+  log('ESP32 : ' + msg);
+  lireEtat(msg);
+}
+
+// Ouvre la liaison avec la carte (première connexion ou reconnexion)
+async function ouvrirSession() {
+  const serveur = await device.gatt.connect();
+  const service = await serveur.getPrimaryService(SERVICE);
+  const rx = await service.getCharacteristic(RX);
+  const tx = await service.getCharacteristic(TX);
+  tx.oncharacteristicvaluechanged = recevoir;   // une seule écoute, même après plusieurs reconnexions
+  await tx.startNotifications();
+
+  // Première commande : si le téléphone n'est pas encore appairé, il demande le code ici.
+  // On réessaie pendant 30 s, le temps de taper le code.
+  for (let essai = 0; ; essai++) {
+    try {
+      const data = new TextEncoder().encode('?');
+      if (rx.writeValueWithResponse) await rx.writeValueWithResponse(data); else await rx.writeValue(data);
+      break;
+    } catch (e) {
+      if (!device.gatt.connected || essai >= 15) throw new Error('appairage refusé ou code incorrect (' + e.message + ')');
+      if (essai === 0) log('Appairage : entre le code de la carte quand le téléphone le demande');
+      await new Promise(r => setTimeout(r, 2000));
+    }
+  }
+
+  rxChar = rx;
+  ecrire('dernierAppareil', device.id);
+  setEtat('connecte');
+  log('Connecté à ' + (device.name || 'la carte'));
+}
+
+function surDeconnexion() {
+  rxChar = null; file = []; occupe = false;
+  if (deconnexionVoulue || etat === 'deconnecte') {
+    deconnexionVoulue = false;
+    setEtat('deconnecte');
+    log('Déconnecté');
+    return;
+  }
+  log('Liaison perdue, reconnexion automatique…');
+  lancerReconnexion();
+}
+
+// Réessaie de se connecter toutes les 3 s jusqu'à ce que la carte réponde (ou qu'on annule)
+function lancerReconnexion() {
+  clearTimeout(minuterieReco);
+  setEtat('reconnexion');
+  const tenter = async () => {
+    if (etat !== 'reconnexion' || !device) return;
+    try { await ouvrirSession(); }
+    catch (e) {
+      if (etat === 'reconnexion') minuterieReco = setTimeout(tenter, 3000);
+    }
+  };
+  tenter();
+}
+
+function annulerReconnexion() {
+  clearTimeout(minuterieReco);
+  setEtat('deconnecte');
+  if (device && device.gatt.connected) { deconnexionVoulue = true; device.gatt.disconnect(); }
+  log('Reconnexion annulée');
+}
+
 async function connecter() {
   try {
     device = await navigator.bluetooth.requestDevice({
-      filters: [{ services: [SERVICE] }, { namePrefix: 'MX5' }, { namePrefix: 'ESP32' }],
+      filters: [{ services: [SERVICE] }, { namePrefix: 'MX5' }, { namePrefix: 'ESP32' }, { namePrefix: 'Car' }],
       optionalServices: [SERVICE]
     });
-    device.addEventListener('gattserverdisconnected', () => {
-      rxChar = null; file = []; occupe = false; setConnecte(false); log('Déconnecté');
-    });
-    $('etatTxt').textContent = 'Connexion…';
-    const serveur = await device.gatt.connect();
-    const service = await serveur.getPrimaryService(SERVICE);
-    rxChar = await service.getCharacteristic(RX);
-    const txChar = await service.getCharacteristic(TX);
-    await txChar.startNotifications();
-    txChar.addEventListener('characteristicvaluechanged', e => {
-      const msg = new TextDecoder().decode(e.target.value);
-      log('ESP32 : ' + msg);
-      lireEtat(msg);
-    });
-    setConnecte(true);
-    log('Connecté à ' + (device.name || 'la carte'));
-    envoyer('?');
   } catch (e) {
-    setConnecte(false);
+    log('Aucune carte choisie : ' + e.message);
+    return;
+  }
+  device.ongattserverdisconnected = surDeconnexion;
+  setEtat('connexion');
+  try { await ouvrirSession(); }
+  catch (e) {
+    setEtat('deconnecte');
+    if (device.gatt.connected) { deconnexionVoulue = true; device.gatt.disconnect(); }
     log('Connexion impossible : ' + e.message);
   }
 }
+
 function basculerConnexion() {
-  if (estConnecte()) device.gatt.disconnect();
+  if (etat === 'connecte') { deconnexionVoulue = true; device.gatt.disconnect(); }
+  else if (etat === 'reconnexion' || etat === 'connexion') annulerReconnexion();
   else connecter();
 }
 $('btnCo').onclick = basculerConnexion;
 $('btnCo2').onclick = basculerConnexion;
+
+// À l'ouverture de l'appli : si le navigateur se souvient de la carte, on s'y reconnecte tout seul
+async function reconnexionAuDemarrage() {
+  if (!navigator.bluetooth || !navigator.bluetooth.getDevices) return;
+  try {
+    const appareils = await navigator.bluetooth.getDevices();
+    if (!appareils.length) return;
+    const id = lire('dernierAppareil', null);
+    device = appareils.find(a => a.id === id) || appareils[0];
+    device.ongattserverdisconnected = surDeconnexion;
+    log('Recherche de ' + (device.name || 'la carte') + '…');
+    lancerReconnexion();
+  } catch (e) { /* pas pris en charge : connexion manuelle */ }
+}
 
 if (!navigator.bluetooth) {
   $('nonSupporte').hidden = false;
@@ -394,9 +609,11 @@ if (!navigator.bluetooth) {
   $('btnCo2').disabled = true;
 }
 
-setConnecte(false);
+setEtat('deconnecte');
 majCurseurs();
 majModes();
+afficherFavoris();
+reconnexionAuDemarrage();
 
 // Mode application : fonctionne même sans Internet une fois installée
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});

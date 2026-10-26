@@ -1,6 +1,6 @@
 // Garde l'application en mémoire pour qu'elle s'ouvre même sans Internet.
 // Change le numéro de version après chaque modification pour forcer la mise à jour.
-const VERSION = 'mx5-flash-v6';
+const VERSION = 'mx5-flash-v7';
 const FICHIERS = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {
