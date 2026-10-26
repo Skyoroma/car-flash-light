@@ -61,7 +61,9 @@ Le projet a été monté sur une Mazda MX-5, mais il fonctionne sur **n'importe 
 - **Reconnexion automatique** : si la liaison est coupée (contact coupé, téléphone trop loin), l'appli se reconnecte toute seule dès que la carte est de nouveau disponible.
 - **Mémorisation sur la carte** : au démarrage, la carte reprend directement le dernier mode et les derniers réglages, sans avoir besoin du téléphone.
 - **17 modes de flash** (voir le détail ci-dessous).
-- **Favoris** : enregistre une combinaison mode + vitesse + luminosité + pause et rappelle-la en un appui.
+- **Éditeur de séquences** : dessine tes propres effets pas à pas (gauche, droite, les deux ou rien), avec aperçu en direct. La carte mémorise la séquence jouée.
+- **Favoris** : enregistre une combinaison mode + vitesse + luminosité + pause (et séquence perso) et rappelle-la en un appui.
+- **Extinction automatique** : les phares s'éteignent tout seuls après 5, 10, 30 ou 60 minutes sans action, pour protéger la batterie. Le temps restant s'affiche dans l'appli.
 - **Réglages en direct** : vitesse, luminosité, durée des pauses.
 - **Aperçu à l'écran** des deux feux, synchronisé avec l'effet choisi.
 - **Bouton marche/arrêt** qui relance le dernier mode utilisé.
@@ -90,6 +92,7 @@ Les noms sont ceux affichés dans l'application. G = phare gauche, D = phare dro
 | **Respiration** | G + D | les deux s'allument et s'éteignent doucement, ensemble |
 | **Gyrophare** | G puis D | 4 flashs rapides G → 4 flashs rapides D |
 | **Accélération** | G + D | strobo de plus en plus rapide pendant 4 s → pause |
+| **Mes séquences** | au choix | séquences créées dans l'éditeur (voir [Utilisation](#utilisation)) |
 
 La **vitesse** règle la rapidité des flashs (pour Accélération, c'est la vitesse atteinte à la fin). La **pause** règle la durée des temps morts : elle s'applique aux modes de Strobo ×3 à 3 + 1, et à Accélération.
 
@@ -202,6 +205,10 @@ Pour héberger ta propre copie, fais un *fork* de ce dépôt, puis active **Sett
 
 **Favoris** : règle un effet qui te plaît, appuie sur **+** dans la section Favoris et donne-lui un nom. Un appui sur le favori renvoie ensuite tous ses réglages à la carte. Pour en supprimer, appuie sur **Modifier**, puis sur la croix du favori.
 
+**Mes séquences** : appuie sur **+ Créer** dans la section Mes séquences. Chaque colonne de la grille est un pas : touche la case *Gauche* et/ou *Droite* pour allumer ce phare à ce moment-là, ajoute ou retire des pas (32 au maximum), puis appuie sur **Enregistrer et jouer**. L'aperçu en haut de l'éditeur joue la séquence en direct, au rythme du curseur **Vitesse**. Pour modifier ou supprimer une séquence, appuie sur **Modifier**, puis sur la séquence. Deux exemples (*Ping-pong* et *Police*) sont fournis.
+
+**Extinction automatique** : choisis un délai (5 min à 1 h) dans les réglages. Le compte à rebours s'affiche sous le bouton marche/arrêt et repart à zéro à chaque action. C'est la carte qui coupe, même si le téléphone est rangé ou déconnecté. Au prochain démarrage, elle reprend le dernier mode.
+
 **Reconnexion** : si la liaison est coupée, le bouton en haut affiche « Reconnexion… » et l'appli réessaie toute seule. Appuie dessus pour annuler. Dans Chrome, l'appli peut aussi se reconnecter dès son ouverture à la dernière carte utilisée (si le navigateur le permet ; sinon, appuie sur **Connecter**).
 
 L'icône de réglages, en haut à droite, affiche l'état de la connexion et le journal des messages échangés avec la carte.
@@ -235,11 +242,13 @@ Les commandes ne sont acceptées qu'après appairage avec le code (si `SECURITE`
 
 | Commande | Effet |
 |---|---|
-| `M:n` | choisit le mode `n` (0 = arrêt, 1 à 17) |
+| `M:n` | choisit le mode `n` (0 = arrêt, 1 à 17, 18 = séquence perso) |
 | `V:n` | vitesse, de 1 à 100 |
 | `L:n` | luminosité, de 0 à 100 |
 | `P:n` | pause, de 0 à 100 (× 15 ms, soit 0 à 1,5 s) |
-| `?` | renvoie l'état : `ETAT mode vitesse luminosité pause` |
+| `T:n` | extinction automatique après `n` minutes sans action (0 = désactivée) |
+| `S:pas` / `S+pas` | séquence perso : début / suite, 16 pas au plus par message, 32 au total. Un pas = `G`, `D`, `X` (les deux) ou `_` (rien) |
+| `?` | renvoie l'état : `ETAT mode vitesse luminosité pause`, `MIN minutes secondes_restantes` et `SEQ:pas` (+ `SEQ+pas`) |
 
 ---
 
