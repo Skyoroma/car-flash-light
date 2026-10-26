@@ -133,7 +133,7 @@ Le + et le − du 12 V arrivent sur le régulateur et sur les deux modules :
 
 L'application est hébergée gratuitement avec GitHub Pages :
 
-**👉 https://TON-PSEUDO.github.io/car-flash-light/**
+**👉 https://skyoroma.github.io/car-flash-light/**
 
 - **Android (Chrome)** : ouvre le lien, appuie sur **⋮**, puis **Installer l'application**. Une icône apparaît sur l'écran d'accueil.
 - **iPhone** : Safari ne gère pas le Bluetooth web. Ouvre le lien dans l'application gratuite **Bluefy**.
