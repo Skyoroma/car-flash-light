@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MX5 Flash</title>
+<meta name="theme-color" content="#0b0b0d">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+  :root {
+    --bg:#0b0b0d; --surface:#151518; --surface2:#1d1d21; --ligne:rgba(255,255,255,.07);
+    --txt:#f2f2f4; --muted:#7c7c85; --accent:#ffffff;
+    --g:#ff3b30; --d:#2f7bff; --ok:#30d158; --bad:#ff453a;
+    --rayon:18px;
+  }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { height:100%; }
+  body {
+    margin:0; background:var(--bg); color:var(--txt);
+    font:15px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+    padding:max(16px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom));
+    user-select:none;
+  }
+  main { max-width:440px; margin:0 auto; display:flex; flex-direction:column; gap:28px; }
+  button { font:inherit; color:inherit; background:none; border:0; padding:0; cursor:pointer; }
+
+  /* ---------- En-tête ---------- */
+  header { display:flex; align-items:center; justify-content:space-between; }
+  .titre { font-size:22px; font-weight:700; letter-spacing:-.02em; }
+  .actions { display:flex; align-items:center; gap:8px; }
+  .pastille {
+    display:flex; align-items:center; gap:8px; height:36px; padding:0 14px;
+    border-radius:999px; background:var(--surface); font-size:13px; font-weight:500; color:var(--muted);
+  }
+  .pastille i { width:7px; height:7px; border-radius:50%; background:var(--muted); }
+  .pastille.on { color:var(--txt); }
+  .pastille.on i { background:var(--ok); box-shadow:0 0 8px var(--ok); }
+  .icone { width:36px; height:36px; border-radius:50%; background:var(--surface); display:grid; place-items:center; color:var(--muted); }
+  .icone svg { width:18px; height:18px; }
+
+  /* ---------- Aperçu + bouton marche ---------- */
+  .scene { display:flex; align-items:center; justify-content:center; gap:28px; padding:12px 0 4px; }
+  .feu { width:64px; height:64px; border-radius:50%; background:var(--surface2); }
+  .power {
+    width:72px; height:72px; border-radius:50%; background:var(--surface);
+    display:grid; place-items:center; color:var(--muted); border:1px solid var(--ligne);
+    transition:background .2s, color .2s, transform .1s;
+  }
+  .power:active { transform:scale(.94); }
+  .power svg { width:26px; height:26px; }
+  .power.on { background:var(--accent); color:#000; border-color:transparent; }
+  .nomMode { text-align:center; color:var(--muted); font-size:13px; margin-top:14px; min-height:18px; }
+
+  /* ---------- Modes ---------- */
+  .section-titre { font-size:12px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; margin:0 0 12px 2px; }
+  .modes { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .mode {
+    display:flex; flex-direction:column; align-items:flex-start; gap:10px; text-align:left;
+    padding:14px 14px 13px; border-radius:14px; background:var(--surface); font-size:14px; font-weight:500;
+    transition:background .15s, color .15s;
+  }
+  /* Motif : chaque étape = une paire de barres [gauche | droite], allumée en blanc ou éteinte */
+  .mode .motif { display:flex; gap:6px; flex:none; }
+  .mode .motif .pas { display:flex; gap:2px; }
+  .mode .motif b { width:4px; height:12px; border-radius:1.5px; background:currentColor; opacity:.15; }
+  .mode.actif { background:var(--accent); color:#000; }
+
+  /* ---------- Curseurs ---------- */
+  .reglages { display:flex; flex-direction:column; gap:18px; background:var(--surface); border-radius:var(--rayon); padding:18px; }
+  .reglage[hidden] { display:none; }
+  .reglage .ligne { display:flex; justify-content:space-between; font-size:13px; margin-bottom:10px; }
+  .reglage .ligne span:first-child { color:var(--muted); }
+  .reglage .ligne span:last-child { font-variant-numeric:tabular-nums; font-weight:500; }
+  input[type=range] { -webkit-appearance:none; appearance:none; width:100%; height:4px; border-radius:4px; outline:none;
+    background:linear-gradient(to right, var(--accent) var(--p,50%), var(--surface2) var(--p,50%)); }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:22px; height:22px; border-radius:50%; background:#fff; box-shadow:0 2px 8px rgba(0,0,0,.4); cursor:pointer; }
+  input[type=range]::-moz-range-thumb { width:22px; height:22px; border:0; border-radius:50%; background:#fff; cursor:pointer; }
+
+  .desactive { opacity:.35; pointer-events:none; transition:opacity .2s; }
+
+  /* ---------- Panneau paramètres ---------- */
+  .voile { position:fixed; inset:0; background:rgba(0,0,0,.55); opacity:0; pointer-events:none; transition:opacity .25s; }
+  .voile.ouvert { opacity:1; pointer-events:auto; }
+  .panneau {
+    position:fixed; left:0; right:0; bottom:0; max-width:480px; margin:0 auto;
+    background:var(--surface); border-radius:22px 22px 0 0; padding:10px 20px max(24px, env(safe-area-inset-bottom));
+    transform:translateY(110%); visibility:hidden; transition:transform .3s cubic-bezier(.2,.8,.2,1), visibility 0s .3s; max-height:80vh; display:flex; flex-direction:column; gap:16px;
+  }
+  .panneau.ouvert { transform:none; visibility:visible; transition:transform .3s cubic-bezier(.2,.8,.2,1); }
+  .poignee { width:36px; height:4px; border-radius:4px; background:var(--surface2); margin:0 auto 4px; }
+  .panneau h2 { font-size:17px; margin:0; }
+  .info { display:flex; justify-content:space-between; font-size:14px; padding:12px 0; border-bottom:1px solid var(--ligne); }
+  .info span:first-child { color:var(--muted); }
+  .bouton { width:100%; padding:14px; border-radius:14px; background:var(--surface2); font-weight:600; }
+  .bouton.danger { color:var(--bad); }
+  #log { font:12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; color:var(--muted); background:var(--bg);
+         border-radius:12px; padding:12px; margin:0; overflow:auto; min-height:120px; max-height:32vh; white-space:pre-wrap; user-select:text; }
+  .warn { color:var(--bad); font-size:13px; text-align:center; margin:0; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="titre">MX5 Flash</div>
+    <div class="actions">
+      <button class="pastille" id="btnCo"><i></i><span id="etatTxt">Connecter</span></button>
+      <button class="icone" id="btnParam" aria-label="Paramètres">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="9" cy="7" r="2.2" fill="var(--surface)"/><circle cx="15" cy="17" r="2.2" fill="var(--surface)"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <p id="nonSupporte" class="warn" hidden>Bluetooth non disponible dans ce navigateur. Utilise Chrome (Android) ou Bluefy (iPhone).</p>
+
+  <div id="commandes">
+    <div class="scene">
+      <div class="feu" id="lampeG"></div>
+      <button class="power" id="btnPower" aria-label="Marche / arrêt">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 3v8"/><path d="M6.3 7.3a8 8 0 1 0 11.4 0"/></svg>
+      </button>
+      <div class="feu" id="lampeD"></div>
+    </div>
+    <div class="nomMode" id="nomMode"></div>
+
+    <section style="margin-top:28px">
+      <p class="section-titre">Modes</p>
+      <div class="modes" id="modes"></div>
+    </section>
+
+    <section style="margin-top:28px">
+      <div class="reglages">
+        <div class="reglage">
+          <div class="ligne"><span>Vitesse</span><span id="vitVal">50</span></div>
+          <input type="range" id="vitesse" min="1" max="100" value="50">
+        </div>
+        <div class="reglage">
+          <div class="ligne"><span>Luminosité</span><span id="lumVal">100 %</span></div>
+          <input type="range" id="lum" min="0" max="100" value="100">
+        </div>
+        <div class="reglage" id="reglagePause" hidden>
+          <div class="ligne"><span>Pause</span><span id="pauseVal">0,45 s</span></div>
+          <input type="range" id="pause" min="0" max="100" value="30">
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<div class="voile" id="voile"></div>
+<div class="panneau" id="panneau" role="dialog" aria-label="Paramètres">
+  <div class="poignee"></div>
+  <h2>Paramètres</h2>
+  <div>
+    <div class="info"><span>Appareil</span><span id="infoNom">—</span></div>
+    <div class="info"><span>État</span><span id="infoEtat">Déconnecté</span></div>
+  </div>
+  <button class="bouton" id="btnCo2">Se connecter</button>
+  <p class="section-titre" style="margin:4px 0 -6px 2px">Messages</p>
+  <pre id="log"></pre>
+</div>
+
+<script>
+const SERVICE = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
+const RX      = '6e400002-b5a3-f393-e0a9-e50e24dcca9e';
+const TX      = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';
+
+// numéro envoyé à l'ESP32, nom, petit motif (g = gauche, d = droite, x = les deux, p = pause)
+const MODES = [
+  { n:1,  nom:'Fixe',            motif:'xxxx' },
+  { n:2,  nom:'Strobo',          motif:'x_x_' },
+  { n:3,  nom:'Alterné',         motif:'g_d_' },
+  { n:4,  nom:'Double',          motif:'ggdd' },
+  { n:5,  nom:'Triple',          motif:'gggddd' },
+  { n:8,  nom:'Fondu',           motif:'gGdD' },
+  { n:6,  nom:'Gauche',          motif:'g_g_' },
+  { n:7,  nom:'Droite',          motif:'d_d_' },
+  { n:9,  nom:'Strobo ×3',       motif:'xxxpp' },
+  { n:10, nom:'Double + pause',  motif:'ggpddp' },
+  { n:11, nom:'Triple + pause',  motif:'gggpdddp' },
+  { n:12, nom:'3 + 2',           motif:'xxxpxxp' },
+  { n:13, nom:'2 + 2',           motif:'xxpxxp' },
+  { n:14, nom:'3 + 1',           motif:'xxxpxp' },
+];
+const MODES_PAUSE = [9, 10, 11, 12, 13, 14];
+
+const $ = id => document.getElementById(id);
+let mode = 0, dernierMode = 2, vitesse = 50, lum = 100, pause = 30;
+let device = null, rxChar = null, occupe = false, file = [];
+
+// ---------- Construction des boutons de mode ----------
+MODES.forEach(m => {
+  const b = document.createElement('button');
+  b.className = 'mode';
+  b.dataset.m = m.n;
+  // Niveau [gauche, droite] de chaque étape du motif
+  const NIVEAUX = { g:[1,0], d:[0,1], x:[1,1], p:[0,0], _:[0,0], G:[.6,.3], D:[.3,.6] };
+  const barres = [...m.motif].map(c => {
+    const [ng, nd] = NIVEAUX[c];
+    const barre = n => `<b style="opacity:${n ? Math.max(n, .15) : .15}"></b>`;
+    return `<span class="pas">${barre(ng)}${barre(nd)}</span>`;
+  }).join('');
+  b.innerHTML = `<span class="motif">${barres}</span><span>${m.nom}</span>`;
+  b.onclick = () => choisirMode(m.n);
+  $('modes').appendChild(b);
+});
+
+const texteSecondes = p => (p * 15 / 1000).toFixed(2).replace('.', ',') + ' s';
+const nomDuMode = n => (MODES.find(m => m.n === n) || {}).nom || '';
+
+function majModes() {
+  document.querySelectorAll('.mode').forEach(b => b.classList.toggle('actif', +b.dataset.m === mode));
+  $('btnPower').classList.toggle('on', mode !== 0);
+  $('nomMode').textContent = mode === 0 ? 'Éteint' : nomDuMode(mode);
+  $('reglagePause').hidden = !MODES_PAUSE.includes(mode);
+}
+function choisirMode(i) {
+  mode = i;
+  if (i !== 0) dernierMode = i;
+  majModes();
+  envoyer('M:' + i);
+}
+$('btnPower').onclick = () => choisirMode(mode === 0 ? dernierMode : 0);
+
+// ---------- Curseurs ----------
+function remplir(el) { el.style.setProperty('--p', ((el.value - el.min) / (el.max - el.min) * 100) + '%'); }
+function majCurseurs() {
+  $('vitesse').value = vitesse; $('vitVal').textContent = vitesse;
+  $('lum').value = lum; $('lumVal').textContent = lum + ' %';
+  $('pause').value = pause; $('pauseVal').textContent = texteSecondes(pause);
+  ['vitesse', 'lum', 'pause'].forEach(id => remplir($(id)));
+}
+$('vitesse').oninput = e => { vitesse = +e.target.value; majCurseurs(); envoyer('V:' + vitesse, true); };
+$('lum').oninput     = e => { lum = +e.target.value; majCurseurs(); envoyer('L:' + lum, true); };
+$('pause').oninput   = e => { pause = +e.target.value; majCurseurs(); envoyer('P:' + pause, true); };
+
+// ---------- Simulation (mêmes formules que l'ESP32) ----------
+const periode = () => 1200 * Math.pow(0.965, vitesse);
+function flashs(frac, n) {
+  const slot = 1 / (n + 1), i = Math.floor(frac / slot);
+  return i >= n ? 0 : ((frac % slot) < slot * 0.5 ? 1 : 0);
+}
+function rafale(t, P, Q, n) {
+  const pos = t % (P + Q);
+  return pos < P ? flashs(pos / P, n) : 0;
+}
+function rafaleAlternee(t, P, Q, n) {
+  const demi = P + Q, pos = t % (2 * demi);
+  const r = rafale(pos % demi, P, Q, n);
+  return pos < demi ? [r, 0] : [0, r];
+}
+// Suite de groupes de flashs séparés par une pause, ex. [3, 2] = 3 flashs, pause, 2 flashs, pause
+function sequence(t, P, Q, groupes) {
+  const slot = P / 4;
+  const total = groupes.reduce((s, k) => s + k * slot + Q, 0);
+  let pos = t % total;
+  for (const k of groupes) {
+    if (pos < k * slot) return (pos % slot) < slot / 2 ? 1 : 0;
+    pos -= k * slot;
+    if (pos < Q) return 0;
+    pos -= Q;
+  }
+  return 0;
+}
+
+function calculer(t) {
+  const P = periode(), Q = pause * 15, frac = (t % P) / P, cyc = t % (2 * P);
+  const premiere = cyc < P, fracDemi = (cyc % P) / P, strobo = frac < 0.3 ? 1 : 0;
+  let g = 0, d = 0;
+  switch (mode) {
+    case 1: g = d = 1; break;
+    case 2: g = d = strobo; break;
+    case 3: g = premiere ? 1 : 0; d = 1 - g; break;
+    case 4: if (premiere) g = flashs(fracDemi, 2); else d = flashs(fracDemi, 2); break;
+    case 5: if (premiere) g = flashs(fracDemi, 3); else d = flashs(fracDemi, 3); break;
+    case 6: g = strobo; break;
+    case 7: d = strobo; break;
+    case 8: g = (1 - Math.cos(2 * Math.PI * cyc / (2 * P))) / 2; d = 1 - g; break;
+    case 9: g = d = rafale(t, P, Q, 3); break;
+    case 10: [g, d] = rafaleAlternee(t, P, Q, 2); break;
+    case 11: [g, d] = rafaleAlternee(t, P, Q, 3); break;
+    case 12: g = d = sequence(t, P, Q, [3, 2]); break;
+    case 13: g = d = sequence(t, P, Q, [2, 2]); break;
+    case 14: g = d = sequence(t, P, Q, [3, 1]); break;
+  }
+  return [g * lum / 100, d * lum / 100];
+}
+function allumer(el, niveau, couleur) {
+  if (niveau <= 0.01) { el.style.background = ''; el.style.boxShadow = 'none'; el.style.opacity = 1; return; }
+  el.style.background = couleur;
+  el.style.opacity = 0.3 + 0.7 * niveau;
+  el.style.boxShadow = `0 0 ${16 + 44 * niveau}px ${couleur}`;
+}
+function animer(t) {
+  const [g, d] = calculer(t);
+  allumer($('lampeG'), g, 'var(--g)');
+  allumer($('lampeD'), d, 'var(--d)');
+  requestAnimationFrame(animer);
+}
+requestAnimationFrame(animer);
+
+// ---------- Panneau paramètres ----------
+function ouvrirPanneau(ouvert) {
+  $('panneau').classList.toggle('ouvert', ouvert);
+  $('voile').classList.toggle('ouvert', ouvert);
+}
+$('btnParam').onclick = () => ouvrirPanneau(true);
+$('voile').onclick = () => ouvrirPanneau(false);
+
+// ---------- Bluetooth ----------
+function log(t) {
+  const h = new Date().toLocaleTimeString('fr-FR');
+  $('log').textContent = h + '  ' + t + '\n' + $('log').textContent;
+}
+const estConnecte = () => !!(device && device.gatt.connected && rxChar);
+
+function setConnecte(ok) {
+  $('btnCo').classList.toggle('on', ok);
+  $('etatTxt').textContent = ok ? 'Connecté' : 'Connecter';
+  $('infoNom').textContent = device ? (device.name || 'Sans nom') : '—';
+  $('infoEtat').textContent = ok ? 'Connecté' : 'Déconnecté';
+  $('btnCo2').textContent = ok ? 'Se déconnecter' : 'Se connecter';
+  $('btnCo2').classList.toggle('danger', ok);
+  $('commandes').classList.toggle('desactive', !ok);
+}
+
+// File d'envoi : les curseurs remplacent leur commande en attente,
+// les changements de mode passent toujours.
+async function envoyer(txt, remplacable = false) {
+  if (!rxChar) return;
+  if (remplacable) { const cle = txt.slice(0, 2); file = file.filter(c => !c.startsWith(cle)); }
+  file.push(txt);
+  if (occupe) return;
+  occupe = true;
+  while (file.length) {
+    const c = file.shift();
+    try { await rxChar.writeValue(new TextEncoder().encode(c)); }
+    catch (e) { log('Erreur : ' + e.message); }
+  }
+  occupe = false;
+}
+
+function lireEtat(msg) {
+  const m = msg.match(/^ETAT (\d+) (\d+) (\d+) (\d+)/);
+  if (!m) return;
+  mode = +m[1]; vitesse = +m[2]; lum = +m[3]; pause = +m[4];
+  if (mode !== 0) dernierMode = mode;
+  majCurseurs();
+  majModes();
+}
+
+async function connecter() {
+  try {
+    device = await navigator.bluetooth.requestDevice({
+      filters: [{ services: [SERVICE] }, { namePrefix: 'MX5' }, { namePrefix: 'ESP32' }],
+      optionalServices: [SERVICE]
+    });
+    device.addEventListener('gattserverdisconnected', () => {
+      rxChar = null; file = []; occupe = false; setConnecte(false); log('Déconnecté');
+    });
+    $('etatTxt').textContent = 'Connexion…';
+    const serveur = await device.gatt.connect();
+    const service = await serveur.getPrimaryService(SERVICE);
+    rxChar = await service.getCharacteristic(RX);
+    const txChar = await service.getCharacteristic(TX);
+    await txChar.startNotifications();
+    txChar.addEventListener('characteristicvaluechanged', e => {
+      const msg = new TextDecoder().decode(e.target.value);
+      log('ESP32 : ' + msg);
+      lireEtat(msg);
+    });
+    setConnecte(true);
+    log('Connecté à ' + (device.name || 'la carte'));
+    envoyer('?');
+  } catch (e) {
+    setConnecte(false);
+    log('Connexion impossible : ' + e.message);
+  }
+}
+function basculerConnexion() {
+  if (estConnecte()) device.gatt.disconnect();
+  else connecter();
+}
+$('btnCo').onclick = basculerConnexion;
+$('btnCo2').onclick = basculerConnexion;
+
+if (!navigator.bluetooth) {
+  $('nonSupporte').hidden = false;
+  $('btnCo').disabled = true;
+  $('btnCo2').disabled = true;
+}
+
+setConnecte(false);
+majCurseurs();
+majModes();
+
+// Mode application : fonctionne même sans Internet une fois installée
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
