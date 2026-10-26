@@ -31,10 +31,10 @@
      1 Fixe                    10 Double alterné + pause (G G, pause, D D, pause)
      2 Stroboscope             11 Triple alterné + pause (G G G, pause, D D D, pause)
      3 Alterné G/D             12 3 flashs, pause, 2 flashs, pause
-     4 Double flash alterné    13 2 flashs, pause, 2 flashs, pause
+     4 Double flash alterné    13 Strobo x2 : 2 flashs, pause, 2 flashs, pause
      5 Triple flash alterné    14 3 flashs, pause, 1 flash, pause
      6 Gauche seule (strobo)   15 Respiration (les deux s'allument et s'éteignent doucement)
-     7 Droite seule (strobo)   16 Gyrophare (4 flashs rapides G, puis 4 flashs rapides D)
+     7 Droite seule (strobo)   16 (non utilisé)
      8 Fondu alterné           17 Accélération (strobo de plus en plus rapide, puis pause)
                                18 Perso (séquence créée dans l'éditeur de l'appli)
   (Les modes 9 à 14 et 17 utilisent la pause.)
@@ -331,13 +331,6 @@ void calculer(unsigned long t, float &g, float &d) {
     case 15: {                                    // Respiration : cycle de 4 périodes
       float phase = (t % (4 * P)) / (4.0 * P);
       g = d = (1 - cos(2 * PI * phase)) / 2;
-      break;
-    }
-    case 16: {                                    // Gyrophare : 4 flashs rapides de chaque côté
-      unsigned long H = max(60UL, P * 6 / 10);
-      unsigned long c = t % (2 * H);
-      float f = flashs((c % H) / (float)H, 4);
-      if (c < H) g = f; else d = f;
       break;
     }
     case 17: g = d = acceleration(t, P, Q); break;
