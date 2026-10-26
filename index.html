@@ -69,6 +69,10 @@
   .mode .motif .pas { display:flex; gap:2px; }
   .mode .motif b { width:4px; height:12px; border-radius:1.5px; background:currentColor; opacity:.15; }
   .mode.actif { background:var(--accent); color:#000; }
+  .categorie { display:flex; align-items:baseline; gap:8px; margin:18px 2px 10px; }
+  .categorie:first-child { margin-top:0; }
+  .categorie h3 { font-size:15px; font-weight:600; margin:0; }
+  .categorie span { font-size:12px; color:var(--muted); }
 
   /* ---------- Curseurs ---------- */
   .reglages { display:flex; flex-direction:column; gap:18px; background:var(--surface); border-radius:var(--rayon); padding:18px; }
@@ -196,7 +200,7 @@
 
     <section style="margin-top:28px">
       <p class="section-titre">Modes</p>
-      <div class="modes" id="modes"></div>
+      <div id="modes"></div>
     </section>
 
     <section style="margin-top:28px">
@@ -282,25 +286,31 @@ const SERVICE = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
 const RX      = '6e400002-b5a3-f393-e0a9-e50e24dcca9e';
 const TX      = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';
 
-// numéro envoyé à l'ESP32, nom, petit motif (g = gauche, d = droite, x = les deux, p = pause)
+// Catégories de modes, selon la façon dont les deux phares s'allument
+const CATEGORIES = [
+  { id:'ensemble', nom:'Ensemble',     detail:'les deux phares en même temps' },
+  { id:'alterne',  nom:'Alternés',     detail:'gauche puis droite' },
+  { id:'cote',     nom:'Un seul côté', detail:'un phare à la fois' },
+];
+
+// numéro envoyé à l'ESP32, nom, catégorie, petit motif (g = gauche, d = droite, x = les deux, p = pause)
 const MODES = [
-  { n:1,  nom:'Fixe',            motif:'xxxx' },
-  { n:2,  nom:'Strobo',          motif:'x_x_' },
-  { n:3,  nom:'Alterné',         motif:'g_d_' },
-  { n:4,  nom:'Double',          motif:'ggdd' },
-  { n:5,  nom:'Triple',          motif:'gggddd' },
-  { n:8,  nom:'Fondu',           motif:'gGdD' },
-  { n:6,  nom:'Gauche',          motif:'g_g_' },
-  { n:7,  nom:'Droite',          motif:'d_d_' },
-  { n:9,  nom:'Strobo ×3',       motif:'xxxpp' },
-  { n:10, nom:'Double + pause',  motif:'ggpddp' },
-  { n:11, nom:'Triple + pause',  motif:'gggpdddp' },
-  { n:12, nom:'3 + 2',           motif:'xxxpxxp' },
-  { n:13, nom:'2 + 2',           motif:'xxpxxp' },
-  { n:14, nom:'3 + 1',           motif:'xxxpxp' },
-  { n:15, nom:'Respiration',     motif:'phxhp' },
-  { n:16, nom:'Gyrophare',       motif:'ggggdddd' },
-  { n:17, nom:'Accélération',    motif:'xppxpxx' },
+  { n:1,  nom:'Fixe',            cat:'ensemble', motif:'xxxx' },
+  { n:2,  nom:'Strobo',          cat:'ensemble', motif:'x_x_' },
+  { n:13, nom:'Strobo ×2',       cat:'ensemble', motif:'xxpxxp' },
+  { n:9,  nom:'Strobo ×3',       cat:'ensemble', motif:'xxxpp' },
+  { n:12, nom:'3 + 2',           cat:'ensemble', motif:'xxxpxxp' },
+  { n:14, nom:'3 + 1',           cat:'ensemble', motif:'xxxpxp' },
+  { n:15, nom:'Respiration',     cat:'ensemble', motif:'phxhp' },
+  { n:17, nom:'Accélération',    cat:'ensemble', motif:'xppxpxx' },
+  { n:3,  nom:'Alterné',         cat:'alterne',  motif:'g_d_' },
+  { n:4,  nom:'Double',          cat:'alterne',  motif:'ggdd' },
+  { n:5,  nom:'Triple',          cat:'alterne',  motif:'gggddd' },
+  { n:10, nom:'Double + pause',  cat:'alterne',  motif:'ggpddp' },
+  { n:11, nom:'Triple + pause',  cat:'alterne',  motif:'gggpdddp' },
+  { n:8,  nom:'Fondu',           cat:'alterne',  motif:'gGdD' },
+  { n:6,  nom:'Gauche',          cat:'cote',     motif:'g_g_' },
+  { n:7,  nom:'Droite',          cat:'cote',     motif:'d_d_' },
 ];
 const MODES_PAUSE = [9, 10, 11, 12, 13, 14, 17];
 
@@ -308,7 +318,17 @@ const $ = id => document.getElementById(id);
 let mode = 0, dernierMode = 2, vitesse = 50, lum = 100, pause = 30;
 let device = null, rxChar = null, occupe = false, file = [];
 
-// ---------- Construction des boutons de mode ----------
+// ---------- Construction des boutons de mode, par catégorie ----------
+const grilles = {};
+CATEGORIES.forEach(c => {
+  const tete = document.createElement('div');
+  tete.className = 'categorie';
+  tete.innerHTML = `<h3>${c.nom}</h3><span>${c.detail}</span>`;
+  const grille = document.createElement('div');
+  grille.className = 'modes';
+  $('modes').append(tete, grille);
+  grilles[c.id] = grille;
+});
 MODES.forEach(m => {
   const b = document.createElement('button');
   b.className = 'mode';
@@ -322,7 +342,7 @@ MODES.forEach(m => {
   }).join('');
   b.innerHTML = `<span class="motif">${barres}</span><span>${m.nom}</span>`;
   b.onclick = () => choisirMode(m.n);
-  $('modes').appendChild(b);
+  grilles[m.cat].appendChild(b);
 });
 
 const texteSecondes = p => (p * 15 / 1000).toFixed(2).replace('.', ',') + ' s';
@@ -439,12 +459,6 @@ function calculer(t) {
     case 13: g = d = sequence(t, P, Q, [2, 2]); break;
     case 14: g = d = sequence(t, P, Q, [3, 1]); break;
     case 15: g = d = (1 - Math.cos(2 * Math.PI * (t % (4 * P)) / (4 * P))) / 2; break;
-    case 16: {
-      const H = Math.max(60, Math.floor(P * 6 / 10)), c = t % (2 * H);
-      const f = flashs((c % H) / H, 4);
-      if (c < H) g = f; else d = f;
-      break;
-    }
     case 17: g = d = acceleration(t, P, Q); break;
     case MODE_PERSO: [g, d] = perso(t, P, seqCarte); break;
   }

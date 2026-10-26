@@ -12,7 +12,7 @@
   <img alt="Bluetooth LE" src="https://img.shields.io/badge/Bluetooth-LE-0082FC?logo=bluetooth&logoColor=white">
   <img alt="Appli web installable" src="https://img.shields.io/badge/appli-PWA-5A0FC8?logo=pwa&logoColor=white">
   <br>
-  <img alt="17 modes" src="https://img.shields.io/badge/modes-17-ff3b30">
+  <img alt="16 modes" src="https://img.shields.io/badge/modes-16-ff3b30">
   <img alt="12 V" src="https://img.shields.io/badge/alimentation-12%20V-f5a623">
   <a href="https://github.com/skyoroma/car-flash-light/stargazers"><img alt="stars" src="https://img.shields.io/github/stars/skyoroma/car-flash-light?logo=github&label=stars"></a>
   <img alt="dernière mise à jour" src="https://img.shields.io/github/last-commit/skyoroma/car-flash-light?logo=github&label=mis%20%C3%A0%20jour">
@@ -28,7 +28,7 @@
 
 ---
 
-Un petit boîtier à base d'ESP32-S3 se branche sur le 12 V de la voiture et pilote deux lumières (gauche et droite). Une application web, installable sur le téléphone comme une vraie appli, permet de choisir parmi 17 effets : stroboscope, alterné gauche/droite, doubles et triples flashs, fondu, gyrophare, respiration, rafales avec pause…
+Un petit boîtier à base d'ESP32-S3 se branche sur le 12 V de la voiture et pilote deux lumières (gauche et droite). Une application web, installable sur le téléphone comme une vraie appli, permet de choisir parmi 16 effets : stroboscope, alterné gauche/droite, doubles et triples flashs, fondu, respiration, rafales avec pause…
 
 Le projet a été monté sur une Mazda MX-5, mais il fonctionne sur **n'importe quel véhicule en 12 V** : voiture, utilitaire, quad, moto, remorque, char de carnaval, scène… Il suffit de deux lumières LED 12 V et d'une alimentation 12 V.
 
@@ -60,7 +60,7 @@ Le projet a été monté sur une Mazda MX-5, mais il fonctionne sur **n'importe 
 - **Application installable** sur l'écran d'accueil (Android), qui s'ouvre en plein écran et fonctionne sans Internet une fois installée.
 - **Reconnexion automatique** : si la liaison est coupée (contact coupé, téléphone trop loin), l'appli se reconnecte toute seule dès que la carte est de nouveau disponible.
 - **Mémorisation sur la carte** : au démarrage, la carte reprend directement le dernier mode et les derniers réglages, sans avoir besoin du téléphone.
-- **17 modes de flash** (voir le détail ci-dessous).
+- **16 modes de flash** (voir le détail ci-dessous).
 - **Éditeur de séquences** : dessine tes propres effets pas à pas (gauche, droite, les deux ou rien), avec aperçu en direct. La carte mémorise la séquence jouée.
 - **Favoris** : enregistre une combinaison mode + vitesse + luminosité + pause (et séquence perso) et rappelle-la en un appui.
 - **Extinction automatique** : les phares s'éteignent tout seuls après 5, 10, 30 ou 60 minutes sans action, pour protéger la batterie. Le temps restant s'affiche dans l'appli.
@@ -73,26 +73,40 @@ Le projet a été monté sur une Mazda MX-5, mais il fonctionne sur **n'importe 
 
 Les noms sont ceux affichés dans l'application. G = phare gauche, D = phare droit.
 
-| Mode | Phares | Séquence |
-|---|---|---|
-| **Fixe** | G + D | allumés en continu |
-| **Strobo** | G + D | flashs réguliers, les deux ensemble |
-| **Alterné** | G puis D | G → D → G → D… |
-| **Double** | G puis D | 2 flashs G → 2 flashs D |
-| **Triple** | G puis D | 3 flashs G → 3 flashs D |
-| **Fondu** | G puis D | G s'allume pendant que D s'éteint, en douceur |
-| **Gauche** | G seul | strobo sur le phare gauche uniquement |
-| **Droite** | D seul | strobo sur le phare droit uniquement |
-| **Strobo ×3** | G + D | 3 flashs → pause |
-| **Double + pause** | G puis D | 2 flashs G → pause → 2 flashs D → pause |
-| **Triple + pause** | G puis D | 3 flashs G → pause → 3 flashs D → pause |
-| **3 + 2** | G + D | 3 flashs → pause → 2 flashs → pause |
-| **2 + 2** | G + D | 2 flashs → pause → 2 flashs → pause |
-| **3 + 1** | G + D | 3 flashs → pause → 1 flash → pause |
-| **Respiration** | G + D | les deux s'allument et s'éteignent doucement, ensemble |
-| **Gyrophare** | G puis D | 4 flashs rapides G → 4 flashs rapides D |
-| **Accélération** | G + D | strobo de plus en plus rapide pendant 4 s → pause |
-| **Mes séquences** | au choix | séquences créées dans l'éditeur (voir [Utilisation](#utilisation)) |
+Dans l'application, les modes sont rangés en trois catégories.
+
+**Ensemble** : les deux phares en même temps
+
+| Mode | Séquence |
+|---|---|
+| **Fixe** | allumés en continu |
+| **Strobo** | flashs réguliers |
+| **Strobo ×2** | 2 flashs → pause → 2 flashs → pause |
+| **Strobo ×3** | 3 flashs → pause |
+| **3 + 2** | 3 flashs → pause → 2 flashs → pause |
+| **3 + 1** | 3 flashs → pause → 1 flash → pause |
+| **Respiration** | s'allument et s'éteignent doucement |
+| **Accélération** | strobo de plus en plus rapide pendant 4 s → pause |
+
+**Alternés** : gauche puis droite
+
+| Mode | Séquence |
+|---|---|
+| **Alterné** | G → D → G → D… |
+| **Double** | 2 flashs G → 2 flashs D |
+| **Triple** | 3 flashs G → 3 flashs D |
+| **Double + pause** | 2 flashs G → pause → 2 flashs D → pause |
+| **Triple + pause** | 3 flashs G → pause → 3 flashs D → pause |
+| **Fondu** | G s'allume pendant que D s'éteint, en douceur |
+
+**Un seul côté**
+
+| Mode | Séquence |
+|---|---|
+| **Gauche** | strobo sur le phare gauche uniquement |
+| **Droite** | strobo sur le phare droit uniquement |
+
+**Mes séquences** : tes propres effets, créés dans l'éditeur (voir [Utilisation](#utilisation)).
 
 La **vitesse** règle la rapidité des flashs (pour Accélération, c'est la vitesse atteinte à la fin). La **pause** règle la durée des temps morts : elle s'applique aux modes de Strobo ×3 à 3 + 1, et à Accélération.
 
@@ -242,7 +256,7 @@ Les commandes ne sont acceptées qu'après appairage avec le code (si `SECURITE`
 
 | Commande | Effet |
 |---|---|
-| `M:n` | choisit le mode `n` (0 = arrêt, 1 à 17, 18 = séquence perso) |
+| `M:n` | choisit le mode `n` (0 = arrêt, 1 à 17 sauf 16, 18 = séquence perso) |
 | `V:n` | vitesse, de 1 à 100 |
 | `L:n` | luminosité, de 0 à 100 |
 | `P:n` | pause, de 0 à 100 (× 15 ms, soit 0 à 1,5 s) |
